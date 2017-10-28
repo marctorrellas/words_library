@@ -1,7 +1,5 @@
-import logging, argparse
+import argparse
 import os
-import gensim
-import nltk
 import textwrap
 import logging
 import joblib
@@ -19,10 +17,6 @@ punkt_params.abbrev_types = set(['dr','mr','i.e','e.g'])
 sent_tok = PunktSentenceTokenizer(punkt_params)
 word_tok = RegexpTokenizer(r'\w+')
 
-FNAME_SENTS = 'sent_dic.joblib'
-FNAME_WORDS = 'word_dic.joblib'
-FNAME_DOCS = 'docs_dic.joblib'
-
 
 def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
     # adds a doc to the database
@@ -34,7 +28,7 @@ def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
     # Compute number of this doc
     ndoc = len(doc_dic) + 1
     # Add doc to doc_dic
-    doc_dic[ndoc] = fname  #  save the fname of this doc in the docs_dic
+    doc_dic[ndoc] = fname  #  save the fname of this doc in the doc_dic
     # Read doc
     doc = open(fname, 'r', encoding='utf-8').readlines()
     log.info('Found {} paragraphs'.format(len(doc)))
@@ -55,30 +49,33 @@ def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
     log.info("Added {} words".format(n))
 
     if save:
-        joblib.dump(word_dic, FNAME_WORDS)
-        joblib.dump(sent_dic, FNAME_SENTS)
-        joblib.dump(doc_dic, FNAME_DOCS)
+        joblib.dump(word_dic, "word_dic.joblib")
+        joblib.dump(sent_dic, "sent_dic.joblib")
+        joblib.dump(doc_dic, "doc_dic.joblib")
     else:
         return sent_dic, word_dic, doc_dic
 
 
-def add_dir(dirname, word_dic, sent_dic, doc_dic, nmax):
+def add_dir(dirname, word_dic, sent_dic, doc_dic, nmax=None):
+    # add dir to the database
 
     if not dirname.endswith('/'):
         dirname += '/'
     docs = os.listdir(dirname)
     n = len(docs) if nmax is None else min(len(docs),nmax)
-    print(docs)
     for ind, d in enumerate(docs[:n]):
         log.info('Reading doc {} in {} ({} of {})'.format(d, dirname, ind+1, n))
         word_dic, sent_dic, doc_dic = add_doc(dirname + d, word_dic, sent_dic, doc_dic)
 
-    joblib.dump(word_dic, FNAME_WORDS)
-    joblib.dump(sent_dic, FNAME_SENTS)
-    joblib.dump(doc_dic, FNAME_DOCS)
+    joblib.dump(word_dic, "word_dic.joblib")
+    joblib.dump(sent_dic, "sent_dic.joblib")
+    joblib.dump(doc_dic, "doc_dic.joblib")
+    log.info("All {} files added succesfully".format(len(docs[:n])))
 
 
 def query_word(word, word_dic, sent_dic, doc_dic):
+    # query word to the database
+
     if word not in word_dic:
         log.info('Word {} not found in database'.format(word))
         return
@@ -87,6 +84,21 @@ def query_word(word, word_dic, sent_dic, doc_dic):
         log.info('Doc: {}'.format(doc_dic[int(app.split('_')[0])]))
         log.info(textwrap.fill(sent_dic[app],100))
         log.info('')
+
+
+def clean():
+    # remove database
+
+    cleaned = False
+    files = ["word_dic.joblib", "sent_dic.joblib", "doc_dic.joblib"]
+    for f in files:
+        if os.path.exists(f):
+            os.remove(f)
+            cleaned=True
+    if cleaned:
+        log.info("Database cleaned")
+    else:
+        log.info("Nothing to clean")
 
 
 if __name__ == '__main__':
@@ -111,8 +123,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     command = args.command
-    if os.path.exists(FNAME_WORDS):
-        word_dic, sent_dic, doc_dic = joblib.load(FNAME_WORDS), joblib.load(FNAME_SENTS), joblib.load(FNAME_DOCS)
+    if os.path.exists("word_dic.joblib"):
+        word_dic, sent_dic, doc_dic = joblib.load("word_dic.joblib"), joblib.load("sent_dic.joblib"), joblib.load("doc_dic.joblib")
     else:
         if command == 'query_word':
             log.info("No docs added, cannot query words")
@@ -126,10 +138,4 @@ if __name__ == '__main__':
     elif command == 'query_word':
         query_word(args.word, word_dic, sent_dic, doc_dic)
     elif command == 'clean':
-        if os.path.exists(FNAME_WORDS):
-            os.remove(FNAME_WORDS)
-            os.remove(FNAME_SENTS)
-            os.remove(FNAME_DOCS)
-            log.info("Database cleaned")
-        else:
-            log.info("Nothing to clean")
+        clean()

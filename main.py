@@ -51,7 +51,6 @@ def add_doc(fname, cur):
                     continue
                 word_apps = cur.execute('select * from word_dic where word == "{}"'.format(word)).fetchone()
                 if word_apps is None:
-                    # TODO: review if in other branch should not or is not
                     cur.execute('insert into word_dic (word, apps) values ("{}", "{}")'.format(word,sent_index))
                 else:
                     word_apps = set(word_apps[1].split(','))

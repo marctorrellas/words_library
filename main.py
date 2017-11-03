@@ -41,7 +41,7 @@ def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
     # Read doc
     doc = open(fname, 'r', encoding='utf-8').readlines()
     log.info('Found {} paragraphs'.format(len(doc)))
-    n = 0  # counter for the number of sentence
+    n, w = 0, 0  # counters for the number of sentences and words
     for par in doc:  # for each paragraph split sentences
         for sent in sent_tok.tokenize(par):
             n += 1
@@ -52,17 +52,18 @@ def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
                 if word in stop or len(word) == 1:
                     continue
                 if word not in word_dic:
+                    w += 1
                     word_dic[word] = set()
                 word_dic[word] |= set([sent_index])
 
-    log.info("Added {} words".format(n))
+    log.info("Added {} new words".format(w))
 
     if save:
         joblib.dump(word_dic, "word_dic.joblib")
         joblib.dump(sent_dic, "sent_dic.joblib")
         joblib.dump(doc_dic, "doc_dic.joblib")
 
-    return n, sent_dic, word_dic, doc_dic
+    return w, sent_dic, word_dic, doc_dic
 
 
 def add_dir(dirname, word_dic, sent_dic, doc_dic, nmax=None):

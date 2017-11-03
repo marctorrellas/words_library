@@ -25,7 +25,7 @@ def test_empty_clean(init):
 
 def test_add_doc(dicts):
     word_dic, sent_dic, doc_dic = dicts[0], dicts[1], dicts[2]
-    assert add_doc('test_docs/doc1.txt', word_dic, sent_dic, doc_dic, save=True)[0] == 133
+    assert add_doc('test_docs/doc1.txt', word_dic, sent_dic, doc_dic, save=True)[0] == 772
 
 
 def test_add_doc_again(dicts):

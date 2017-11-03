@@ -19,12 +19,21 @@ word_tok = RegexpTokenizer(r'\w+')
 
 
 def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
-    # adds a doc to the database
+    """
+    adds a doc to the database
+    :param fname: path to the document
+    :param word_dic: the words dictionary
+    :param sent_dic: the sentences dictionary
+    :param doc_dic: the documents dictionary
+    :param save: a boolean to avoid saving files to disk if we are adding 
+            multiple docs (being called from add_dir)
+    :return updated dicts and number of words added
+    """
 
     # check if a doc has already been added
     if fname in set(doc_dic.values()):
         log.info("Document {} already added to DB".format(fname))
-        return sent_dic, word_dic, doc_dic
+        return -1, sent_dic, word_dic, doc_dic
     # Compute number of this doc
     ndoc = len(doc_dic) + 1
     # Add doc to doc_dic
@@ -52,42 +61,68 @@ def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
         joblib.dump(word_dic, "word_dic.joblib")
         joblib.dump(sent_dic, "sent_dic.joblib")
         joblib.dump(doc_dic, "doc_dic.joblib")
-    else:
-        return sent_dic, word_dic, doc_dic
+
+    return n, sent_dic, word_dic, doc_dic
 
 
 def add_dir(dirname, word_dic, sent_dic, doc_dic, nmax=None):
-    # add dir to the database
+    """
+    add all docs in directory dirname to the database
+    :param dirname: path to the directory
+    :param word_dic: the words dictionary
+    :param sent_dic: the sentences dictionary
+    :param doc_dic: the documents dictionary
+    :param nmax: maximum of docs to add
+    :return: None
+    """
 
     if not dirname.endswith('/'):
         dirname += '/'
     docs = os.listdir(dirname)
     n = len(docs) if nmax is None else min(len(docs),nmax)
+    done = 0
     for ind, d in enumerate(docs[:n]):
         log.info('Reading doc {} in {} ({} of {})'.format(d, dirname, ind+1, n))
-        word_dic, sent_dic, doc_dic = add_doc(dirname + d, word_dic, sent_dic, doc_dic)
+        nwords, word_dic, sent_dic, doc_dic = add_doc(dirname + d, word_dic, sent_dic, doc_dic)
+        done += min(1, nwords>=0)
 
     joblib.dump(word_dic, "word_dic.joblib")
     joblib.dump(sent_dic, "sent_dic.joblib")
     joblib.dump(doc_dic, "doc_dic.joblib")
-    log.info("All {} files added succesfully".format(len(docs[:n])))
+    if done > 0:
+        log.info("{} files added succesfully".format(len(docs[:n])))
+    else:
+        log.info("All files already in database".format(len(docs[:n])))
+    return done
 
 
 def query_word(word, word_dic, sent_dic, doc_dic):
-    # query word to the database
+    """
+    query word usages to the database
+    :param word: query word
+    :param word_dic: the words dictionary
+    :param sent_dic: the sentences dictionary
+    :param doc_dic: the documents dictionary
+    :return: None
+    """
 
     if word not in word_dic:
         log.info('Word {} not found in database'.format(word))
-        return
-    log.debug('Word {} appearing in {}'.format(word, word_dic[word]))
+        return 0
+    log.info('Word {} appearing in {} sentences: {}'.format(word, len(word_dic[word]), word_dic[word]))
     for app in word_dic[word]:
         log.info('Doc: {}'.format(doc_dic[int(app.split('_')[0])]))
         log.info(textwrap.fill(sent_dic[app],100))
         log.info('')
 
+    return len(word_dic[word])
+
 
 def clean():
-    # remove database
+    """
+    Remove database, i.e. word_dic, sent_dic, and doc_dic
+    :return:
+    """
 
     cleaned = False
     files = ["word_dic.joblib", "sent_dic.joblib", "doc_dic.joblib"]
@@ -99,9 +134,17 @@ def clean():
         log.info("Database cleaned")
     else:
         log.info("Nothing to clean")
+    return cleaned
 
 
 if __name__ == '__main__':
+
+    # Examples:
+
+    # python3 main.py add_dir test_docs
+    # python3 main.py query_word government
+    # python3 main.py query_word government
+    # python3 main.py query_word governm --> Not found
 
     # create the top-level parser
     parser = argparse.ArgumentParser(prog='PROG')

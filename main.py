@@ -21,11 +21,16 @@ DB_NAME = 'eigen.db'
 
 
 def add_doc(fname, cur):
-
+    """
+    adds a doc to the database
+    :param fname: path to the document
+    :param cur: cursor pointing to the DB
+    :return number of words added
+    """
     # check if this doc has already been added
     if cur.execute("select 1 from docs_dic where fname=='{}'".format(fname)).fetchone() is not None:
         log.info('Doc {} skipped, already added'.format(fname))
-        return
+        return -1
 
     # Add doc to docs_dic
     ndoc = cur.execute("select count(*) from docs_dic").fetchone()[0] + 1

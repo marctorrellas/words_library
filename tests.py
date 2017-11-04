@@ -59,7 +59,7 @@ def test_notfound_word(dicts):
 
 def test_clean_3():
     x = clean()
-    for f in ['dac_dic.joblib', 'sant_dic.joblib', 'ward_dic.joblib']:
+    for f in ['doc_dic.joblib', 'sent_dic.joblib', 'word_dic.joblib']:
         if os.path.exists(f.replace('joblib','joblib.bak')):
             os.rename(f.replace('joblib', 'joblib.bak'), f)
     assert x

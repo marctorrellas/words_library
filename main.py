@@ -67,7 +67,6 @@ def add_doc(fname, cur):
                     cur.execute("update word_dic set apps = '{}' where word = "
                                 "'{}'".format(str(','.join(word_apps)), word))
 
-    # review in the other branch if this is words or sentences
     new_words = cur.execute("select count(*) from word_dic").fetchone()[0] - nwords
     log.info("Added {} new words".format(new_words))
     return new_words

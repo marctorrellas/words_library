@@ -77,7 +77,6 @@ def add_dir(dirname, cur, nmax=None):
     :param nmax: maximum of docs to add
     :return: number of docs added
     """
-    # TODO: review return documentation in the other branch
     if not dirname.endswith('/'):
         dirname += '/'
     docs = os.listdir(dirname)
@@ -194,25 +193,28 @@ if __name__ == '__main__':
     if len(tables) > 0:
         tables = [i[0] for i in tables]
 
-    if command == 'init':
-        init()
-        db.commit()
-        quit()
-    elif len(tables) == 0:
-        log.info("Please init the system first")
-        quit()
-    else:
-        if command == 'add_dir':
-            add_dir(args.dirname, cur, nmax=args.maxdocs)
-        elif command == 'add_doc':
-            add_doc(args.fname, cur)
-        elif command == 'query_word':
-            # Only query if any docs have been added
-            if cur.execute('SELECT * from doc_dic').fetchone() is None:
-                log.info("No docs added, cannot query words")
-                quit()
-            query_word(args.word, cur)
-        else: # command == 'clean':
-            clean(cur,tables)
+    else:  # if there are no tables
+        if command in ['add_doc','add_dir']:
+            init(cur, tables)
+        else:
+            os.remove('eigen.db')
+            if command == 'clean':
+                log.info("Nothing to clean")
+            else:  # query word
+                log.info("No data in the system. Please add data before querying")
+            quit()
+
+    if command == 'add_dir':
+        add_dir(args.dirname, cur, nmax=args.maxdocs)
+    elif command == 'add_doc':
+        add_doc(args.fname, cur)
+    elif command == 'query_word':
+        # Only query if any docs have been added
+        if cur.execute('SELECT * from doc_dic').fetchone() is None:
+            log.info("No docs added, cannot query words")
+            quit()
+        query_word(args.word, cur)
+    else:  # command == 'clean':
+        clean(cur, tables)
 
     db.commit()

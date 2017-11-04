@@ -63,7 +63,7 @@ def test_add_dir2(get_db):
 
 def test_query_word(get_db):
     db, cur, tables = get_db[0], get_db[1], get_db[2]
-    assert query_word('government', cur) == 19
+    assert query_word('government', cur) == 42
 
 
 def test_notfound_word(get_db):

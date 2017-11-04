@@ -33,7 +33,7 @@ def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
     # check if a doc has already been added
     if fname in set(doc_dic.values()):
         log.info("Document {} already added to DB".format(fname))
-        return -1, sent_dic, word_dic, doc_dic
+        return -1, word_dic, sent_dic, doc_dic
     # Compute number of this doc
     ndoc = len(doc_dic) + 1
     # Add doc to doc_dic
@@ -62,7 +62,7 @@ def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
         joblib.dump(sent_dic, "sent_dic.joblib")
         joblib.dump(doc_dic, "doc_dic.joblib")
 
-    return w, sent_dic, word_dic, doc_dic
+    return w, word_dic, sent_dic, doc_dic
 
 
 def add_dir(dirname, word_dic, sent_dic, doc_dic, nmax=None):
@@ -122,7 +122,7 @@ def query_word(word, word_dic, sent_dic, doc_dic):
 def clean():
     """
     Remove database, i.e. word_dic, sent_dic, and doc_dic
-    :return:
+    :return: True if some data remove, False otherwise
     """
 
     cleaned = False
@@ -130,7 +130,7 @@ def clean():
     for f in files:
         if os.path.exists(f):
             os.remove(f)
-            cleaned=True
+            cleaned = True
     if cleaned:
         log.info("Database cleaned")
     else:
@@ -139,13 +139,6 @@ def clean():
 
 
 if __name__ == '__main__':
-
-    # Examples:
-
-    # python3 main.py add_dir test_docs
-    # python3 main.py query_word government
-    # python3 main.py query_word government
-    # python3 main.py query_word governm --> Not found
 
     # create the top-level parser
     parser = argparse.ArgumentParser(prog='PROG')

@@ -49,7 +49,7 @@ def test_add_dir2(dicts):
 
 def test_query_word(dicts):
     word_dic, sent_dic, doc_dic = dicts[0], dicts[1], dicts[2]
-    assert query_word('government', word_dic, sent_dic, doc_dic) == 19
+    assert query_word('government', word_dic, sent_dic, doc_dic) == 42
 
 
 def test_notfound_word(dicts):

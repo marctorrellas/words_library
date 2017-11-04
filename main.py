@@ -17,8 +17,6 @@ punkt_params.abbrev_types = set(['dr', 'mr', 'i.e', 'e.g'])
 sent_tok = PunktSentenceTokenizer(punkt_params)
 word_tok = RegexpTokenizer(r'\w+')
 
-DB_NAME = 'eigen.db'
-
 
 def add_doc(fname, cur):
     """
@@ -28,13 +26,13 @@ def add_doc(fname, cur):
     :return number of words added
     """
     # check if this doc has already been added
-    if cur.execute("select 1 from docs_dic where fname=='{}'".format(fname)).fetchone() is not None:
+    if cur.execute("select 1 from doc_dic where fname=='{}'".format(fname)).fetchone() is not None:
         log.info('Doc {} skipped, already added'.format(fname))
         return -1
 
-    # Add doc to docs_dic
-    ndoc = cur.execute("select count(*) from docs_dic").fetchone()[0] + 1
-    cur.execute("insert into docs_dic (ndoc, fname) values ({}, '{}')".format(ndoc, fname))
+    # Add doc to doc_dic
+    ndoc = cur.execute("select count(*) from doc_dic").fetchone()[0] + 1
+    cur.execute("insert into doc_dic (ndoc, fname) values ({}, '{}')".format(ndoc, fname))
 
     # Read doc
     doc = open(fname, 'r', encoding='utf-8').readlines()
@@ -60,39 +58,106 @@ def add_doc(fname, cur):
                 else:
                     word_apps = set(word_apps[1].split(','))
                     word_apps |= set([sent_index])
-                    cur.execute("update word_dic set apps = '{}' where word = '{}'".format(str(','.join(word_apps)),
-                                                                                           word))
+                    cur.execute("update word_dic set apps = '{}' where word = "
+                                "'{}'".format(str(','.join(word_apps)), word))
+
 
 
     # review in the other branch if this is words or sentences
     new_words = cur.execute("select count(*) from word_dic").fetchone()[0] - nwords
-    log.info("Added {} words".format(new_words))
+    log.info("Added {} new words".format(new_words))
+    return new_words
 
 
-def add_dir(dirname, cur, nmax):
+def add_dir(dirname, cur, nmax=None):
+    """
+    Adds min(nmax,all) documents in a directory to the DB
+    :param dirname: path to the directory
+    :param cur: pointer to DB
+    :param nmax: maximum of docs to add
+    :return: number of docs added
+    """
+    # TODO: review return documentation in the other branch
     if not dirname.endswith('/'):
         dirname += '/'
     docs = os.listdir(dirname)
     n = len(docs) if nmax is None else min(len(docs), nmax)
+    done = 0
     for ind, d in enumerate(docs[:n]):
         log.info('Reading doc {} in {} ({} of {})'.format(d, dirname, ind + 1, n))
-        add_doc(dirname + d, cur)
+        nwords = add_doc(dirname + d, cur)
+        done += min(1, nwords>=0)
+
+    if done > 0:
+        log.info("{} files added succesfully".format(len(docs[:n])))
+    else:
+        log.info("All files already in database".format(len(docs[:n])))
+    return done
 
 
 def query_word(word, cur):
+    """
+    Retrieve word usages from the database
+    :param word: query word
+    :param cur: pointer to DB
+    :return: number of sentences where the words appears
+    """
     word_apps = cur.execute("select * from word_dic where word == '{}'".format(word)).fetchone()
     if word_apps is None:
         log.info('Word {} not found in database'.format(word))
-        return
+        return 0
     word_apps = word_apps[1].split(',')
     log.info('Word {} appearing in {} docs'.format(word, len({x.split('_')[0] for x in word_apps})))
-    log.debug('Word {} appearing in {}'.format(word, word_apps))
+    log.info('Word {} appearing in {} sentences: {}'.format(word, len(word_apps), word_apps))
     for app in word_apps:
-        doc = cur.execute("select fname from docs_dic where ndoc == {}".format(app.split('_')[0])).fetchone()[0]
+        doc = cur.execute("select fname from doc_dic where ndoc == {}".format(app.split('_')[0])).fetchone()[0]
         log.info('Doc: {}'.format(doc))
         sent = cur.execute("select sent from sent_dic where id == '{}'".format(app)).fetchone()[0]
         log.info(textwrap.fill(sent, 100))
         log.info('')
+    return len(word_apps)
+
+
+def clean(cur, tables):
+    """
+    Remove tables from database
+    :param cur: pointer to DB
+    :return: True if done, False if no tables found
+    """
+    cleaned = False
+    for i in ['doc_dic', 'sent_dic', 'word_dic']:
+        if i in tables:
+            cur.execute('delete from {};'.format(i))
+            cleaned = True
+    if cleaned:
+        log.info("Database cleaned")
+        return True
+    else:
+        log.info("Nothing to clean")
+        return False
+
+
+def init(cur, tables):
+    """
+
+    :param cur: pointer to DB
+    :param tables: names of tables in DB
+    :return: True if success, False if tables already there
+    """
+    commands = {'doc_dic': "create table`doc_dic` (`ndoc` INTEGER PRIMARY KEY, `fname` TEXT);",
+                'sent_dic': "create table `sent_dic` (`id` TEXT PRIMARY KEY, `sent` TEXT);",
+                'word_dic': "create table `word_dic` (`word` TEXT PRIMARY KEY, `apps` TEXT);"}
+    new_table = False
+    for i in commands.keys():
+        if i not in tables:
+            new_table = True
+            cur.execute(commands[i])
+    if new_table:
+        log.info("Database succesfully initialized")
+        return True
+    else:
+        log.info("No need to initialize, tables already present")
+        return False
 
 
 if __name__ == '__main__':
@@ -115,26 +180,21 @@ if __name__ == '__main__':
 
     subparsers.add_parser('clean')
     subparsers.add_parser('init')
-    subparsers.add_parser('rmall')
 
     args = parser.parse_args()
     command = args.command
 
-    db = sqlite3.connect(DB_NAME)
+    db = sqlite3.connect('eigen.db')
     cur = db.cursor()
     tables = cur.execute("select name from sqlite_master where type=='table'").fetchall()
+    # A list of tuples is returned, turn to list
+    if len(tables) > 0:
+        tables = [i[0] for i in tables]
 
     if command == 'init':
-        if len(tables) == 0:
-            cur.execute("create table`docs_dic` (`ndoc` INTEGER PRIMARY KEY, `fname` TEXT);")
-            cur.execute("create table `sent_dic` (`id` TEXT PRIMARY KEY, `sent` TEXT);")
-            cur.execute("create table `word_dic` (`word` TEXT PRIMARY KEY, `apps` TEXT);")
-            log.info("Database succesfully initialized")
-            db.commit()
-            quit()
-        else:
-            log.info("No need to initialize, tables already present")
-            quit()
+        init()
+        db.commit()
+        quit()
     elif len(tables) == 0:
         log.info("Please init the system first")
         quit()
@@ -145,16 +205,11 @@ if __name__ == '__main__':
             add_doc(args.fname, cur)
         elif command == 'query_word':
             # Only query if any docs have been added
-            if cur.execute('SELECT * from docs_dic').fetchone() is None:
+            if cur.execute('SELECT * from doc_dic').fetchone() is None:
                 log.info("No docs added, cannot query words")
                 quit()
             query_word(args.word, cur)
         else: # command == 'clean':
-            if cur.execute("select * from docs_dic").fetchone() is not None:
-                for i in ['docs_dic', 'sent_dic', 'word_dic']:
-                    cur.execute('delete from {};'.format(i))
-                log.info("Database cleaned")
-            else:
-                log.info("Nothing to clean")
+            clean()
 
     db.commit()

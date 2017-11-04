@@ -30,6 +30,11 @@ def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
     :return updated dicts and number of words added
     """
 
+    # check if file exists
+    if not os.path.exists(fname):
+        log.info('File {} not found'.format(fname))
+        return -1, word_dic, sent_dic, doc_dic
+
     # check if a doc has already been added
     if fname in set(doc_dic.values()):
         log.info("Document {} already added to DB".format(fname))
@@ -115,14 +120,13 @@ def query_word(word, word_dic, sent_dic, doc_dic):
         log.info('Doc: {}'.format(doc_dic[int(app.split('_')[0])]))
         log.info(textwrap.fill(sent_dic[app],100))
         log.info('')
-
     return len(word_dic[word])
 
 
 def clean():
     """
     Remove database, i.e. word_dic, sent_dic, and doc_dic
-    :return: True if some data remove, False otherwise
+    :return: True if any data removed, False otherwise
     """
 
     cleaned = False
@@ -147,7 +151,7 @@ if __name__ == '__main__':
     # create the parser for the "add_dir" command
     parser_a = subparsers.add_parser('add_dir')
     parser_a.add_argument('dirname', type=str, help='dir name')
-    parser_a.add_argument('-maxdocs', default=None, help='Max number of docs to add')
+    parser_a.add_argument('maxdocs', default=None, help='Max number of docs to add')
 
     # create the parser for the "add_doc" command
     parser_b = subparsers.add_parser('add_doc')
@@ -160,6 +164,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     command = args.command
+    if command is None:
+        parser.print_help()
+        quit()
     if os.path.exists("word_dic.joblib"):
         word_dic, sent_dic, doc_dic = joblib.load("word_dic.joblib"), joblib.load("sent_dic.joblib"), joblib.load("doc_dic.joblib")
     else:
@@ -169,7 +176,12 @@ if __name__ == '__main__':
         word_dic, sent_dic, doc_dic = dict(), dict(), dict()
 
     if command == 'add_dir':
-        add_dir(args.dirname, word_dic, sent_dic, doc_dic, nmax=args.maxdocs)
+        try:
+            maxdocs = int(args.maxdocs)
+        except ValueError:
+            log.info("Invalid max docs argument")
+            quit()
+        add_dir(args.dirname, word_dic, sent_dic, doc_dic, nmax=maxdocs)
     elif command == 'add_doc':
         add_doc(args.fname, word_dic, sent_dic, doc_dic, save=True)
     elif command == 'query_word':

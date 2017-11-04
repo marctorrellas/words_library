@@ -73,7 +73,7 @@ def add_dir(dirname, word_dic, sent_dic, doc_dic, nmax=None):
     :param sent_dic: the sentences dictionary
     :param doc_dic: the documents dictionary
     :param nmax: maximum of docs to add
-    :return: None
+    :return: number of docs added
     """
 
     if not dirname.endswith('/'):
@@ -103,7 +103,7 @@ def query_word(word, word_dic, sent_dic, doc_dic):
     :param word_dic: the words dictionary
     :param sent_dic: the sentences dictionary
     :param doc_dic: the documents dictionary
-    :return: None
+    :return: number of apps for this word
     """
 
     if word not in word_dic:

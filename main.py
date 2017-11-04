@@ -40,7 +40,6 @@ def add_doc(fname, word_dic, sent_dic, doc_dic, save=False):
     doc_dic[ndoc] = fname  #  save the fname of this doc in the doc_dic
     # Read doc
     doc = open(fname, 'r', encoding='utf-8').readlines()
-    log.info('Found {} paragraphs'.format(len(doc)))
     n, w = 0, 0  # counters for the number of sentences and words
     for par in doc:  # for each paragraph split sentences
         for sent in sent_tok.tokenize(par):
@@ -110,6 +109,7 @@ def query_word(word, word_dic, sent_dic, doc_dic):
     if word not in word_dic:
         log.info('Word {} not found in database'.format(word))
         return 0
+    log.info('Word {} appearing in {} docs'.format(word, len({x.split('_')[0] for x in word_dic[word]})))
     log.info('Word {} appearing in {} sentences: {}'.format(word, len(word_dic[word]), word_dic[word]))
     for app in word_dic[word]:
         log.info('Doc: {}'.format(doc_dic[int(app.split('_')[0])]))

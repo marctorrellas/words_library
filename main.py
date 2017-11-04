@@ -127,8 +127,11 @@ def clean(cur, tables):
     cleaned = False
     for i in ['doc_dic', 'sent_dic', 'word_dic']:
         if i in tables:
-            cur.execute('delete from {};'.format(i))
-            cleaned = True
+            n = cur.execute('select count(*) from {};'.format(i)).fetchall()[0][0]
+            if n > 0:
+                log.info("Found {} elems in {}. Deleting".format(n, i))
+                cur.execute('delete from {};'.format(i))
+                cleaned = True
     if cleaned:
         log.info("Database cleaned")
         return True
@@ -210,6 +213,6 @@ if __name__ == '__main__':
                 quit()
             query_word(args.word, cur)
         else: # command == 'clean':
-            clean()
+            clean(cur,tables)
 
     db.commit()

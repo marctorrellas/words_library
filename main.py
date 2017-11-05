@@ -7,6 +7,8 @@ from nltk import RegexpTokenizer
 from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktParameters
 import sqlite3
 
+DB_NAME = 'word_usage.db'
+
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 log = logging.getLogger(__name__)
 
@@ -191,7 +193,7 @@ if __name__ == '__main__':
         parser.print_help()
         quit()
 
-    db = sqlite3.connect('eigen.db')
+    db = sqlite3.connect(DB_NAME)
     cur = db.cursor()
     tables = cur.execute("select name from sqlite_master where type=='table'").fetchall()
     # A list of tuples is returned, turn to list
@@ -202,7 +204,7 @@ if __name__ == '__main__':
         if command in ['add_doc','add_dir']:
             init(cur, tables)
         else:
-            os.remove('eigen.db')
+            os.remove(DB_NAME)
             if command == 'clean':
                 log.info("Nothing to clean")
             else:  # query word

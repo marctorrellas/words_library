@@ -1,17 +1,17 @@
-from main import add_dir, add_doc, clean, query_word, init
+from main import add_dir, add_doc, clean, query_word, init, DB_NAME
 import os, pytest, sqlite3
 
 
 @pytest.fixture(scope='module')
 def backup_existing_db():
-    if os.path.exists('eigen.db'):
-        os.rename('eigen.db','eigen.db.bak')
+    if os.path.exists(DB_NAME):
+        os.rename(DB_NAME,DB_NAME+'.bak')
 
 
 @pytest.fixture()
 def get_db():
     # run before each test
-    db = sqlite3.connect('eigen.db')
+    db = sqlite3.connect(DB_NAME)
     cur = db.cursor()
     tables = cur.execute("select name from sqlite_master where type=='table'").fetchall()
     # A list of tuples is returned, turn to list
@@ -74,7 +74,7 @@ def test_notfound_word(get_db):
 def test_clean_3(get_db):
     db, cur, tables = get_db[0], get_db[1], get_db[2]
     x = clean(cur, tables)
-    os.remove('eigen.db')
-    if os.path.exists('eigen.db.bak'):
-            os.rename('eigen.db.bak', 'eigen.db')
+    os.remove(DB_NAME)
+    if os.path.exists(DB_NAME+'.bak'):
+            os.rename(DB_NAME+'.bak', DB_NAME)
     assert x
